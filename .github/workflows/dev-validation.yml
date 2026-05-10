@@ -1,0 +1,38 @@
+name: CI Validation Dev
+
+on:
+  pull_request:
+    branches: [ dev ]
+
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 1. Run linting
+        run: cd backend && npm install && npm run lint
+
+      - name: 2. Run npm audit
+        run: cd backend && npm audit
+
+      - name: 3. Static code security analysis (Snyk)
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=backend/package.json
+          
+      - name: 4. Execute all tests
+        run: cd backend && npm test
+
+      - name: 5. Build Docker images
+        run: |
+          docker build -t backend-test ./backend
+          docker build -t frontend-test ./frontend
